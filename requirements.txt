@@ -1,0 +1,4 @@
+h2o_wave
+loguru
+toml
+h2ogpte==1.4.0

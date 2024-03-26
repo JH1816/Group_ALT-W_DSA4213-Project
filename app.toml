@@ -1,0 +1,35 @@
+[App]
+Name = "ai.h2o.wave.weekly_meal_planning"
+Version = "0.0.7"
+Title = "AI Movie Recommendation"
+Description = "Let AI recommmend movies to you!"
+Tags = ["GENERATIVE_AI", "OSS", "AI_FOR_LIFE", "DATA_SCIENCE"]
+LongDescription = "LongDescription.md"
+InstanceLifecycle = "MANAGED"
+
+[Runtime]
+Module = "src.app"
+EnableOIDC = false
+MemoryLimit = "16Gi"
+MemoryReservation = "16Gi"
+
+
+[[Env]]
+Name = "H2OGPTE_API_TOKEN"
+Secret = "h2ogpte-shared"
+SecretKey = "h2ogpte-key"
+
+[[Env]]
+Name = "H2OGPTE_URL"
+Secret = "h2ogpte-shared"
+SecretKey = "h2ogpte-url"
+
+[[Env]]
+Name = "HEAP_ID"
+Secret = "heap-analytics"
+SecretKey = "id"
+
+[[Env]]
+Name = "MAINTENANCE_MODE"
+Secret = "h2ogpte-maintenance"
+SecretKey = "show-maintenance-mode"
