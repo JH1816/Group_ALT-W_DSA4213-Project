@@ -1,12 +1,10 @@
-from h2o_wave import main, app, Q, ui, run_on, copy_expando, on
+from h2o_wave import main, app, Q, ui, run_on, copy_expando, on ,data
 import os
 import toml
 import asyncio
-
+from datetime import datetime
 from loguru import logger
-
 from src.wave_utils import heap_analytics
-
 from h2ogpte import H2OGPTE
 from h2ogpte.types import ChatMessage, PartialChatMessage
 
@@ -129,7 +127,7 @@ def landing_page_layout(q: Q):
 def prompt_generating_form(q):
     logger.info("")
 
-    # Options for meal plan
+    # Options for movie recommendation
     year_of_release_from = range(1980, 2025)
     year_of_release_from_to = range(1980, 2025)
     restrictions = ['G', 'PG', 'PG13', 'NC16', 'M18', 'R21']
@@ -161,10 +159,10 @@ def prompt_generating_form(q):
                               choices=[ui.choice(name=str(i), label=str(i)) for i in year_of_release_from_to]
                           ),
                         #   ui.toggle(
-                        #       name='cooking_instructions',
-                        #       label='Cooking Instructions',
+                        #       name='movie_description',
+                        #       label='Movie Description',
                         #       trigger=True,
-                        #       value=q.client.cooking_instructions)
+                        #       value=q.client.movie_description)
                       ]),
 
             ui.checklist(
@@ -187,70 +185,38 @@ def prompt_generating_form(q):
         ]
     )
 
-    q.page['input_form_mobile'] = ui.form_card(
-        box=ui.box('mobile', order=1),
-        items=[
-            ui.text_l("<b>Get Started</b>"),
-            ui.text("Provide information about your family's eating habits to generate a meal plan."),
-              ui.dropdown(
-                  name='year_of_release',
-                  label='Year of release',
-                  value=q.client.year_of_release_from,
-                  trigger=True,
-                  choices=[ui.choice(name=str(i), label=str(i)) for i in year_of_release_from]
-              ),
-              ui.dropdown(
-                  name='year_of_release_from_to',
-                  label='Year of release to',
-                  value=q.client.year_of_release_from_to,
-                  trigger=True,
-                  choices=[ui.choice(name=str(i), label=str(i)) for i in year_of_release_from_to]
-              ),
-            # ui.toggle(
-            #     name='cooking_instructions',
-            #     label='Cooking Instructions',
-            #     trigger=True,
-            #     value=q.client.cooking_instructions
-            # ),
-
-            ui.checklist(
-                name='restrictions',
-                label='Restrictions',
-                inline=True,
-                trigger=True,
-                values=q.client.restrictions,
-                choices=[ui.choice(name=i, label=i) for i in restrictions]
-            ),
-
-            ui.checklist(
-                name='genres',
-                label='Genres',
-                inline=True,
-                trigger=True,
-                values=q.client.genres,
-                choices=[ui.choice(name=i, label=i) for i in genres]
-            ),
-        ]
-    )
-
-    q.page["meal_plan"] = ui.form_card(box="right", items=[ui.text(name="meal_plan", content="")])
-    q.page["meal_plan_mobile"] = ui.form_card(box=ui.box(zone="mobile", order=3), items=[ui.text(name="meal_plan", content="")])
-
+    q.page["movie_recommendation"] = ui.form_card(box="right", items=[ui.text(name="movie_recommendation", content="")])
 
 @on()
 async def generate_prompt(q: Q):
     logger.info("")
-    # cooking_instructions = ""
-    # if q.client.cooking_instructions:
-    #     cooking_instructions = " Include cooking instructions for each meal."
+    # movie_description = ""
+    # if q.client.movie_description
+    #     movie_description = " Include  movie description for each movie."
 
-    prompt = f'''You are a person looking for movie recommendations with the following restrictions:
+    prompt = f'''
+    You are an expert in movies. Using your knowledge and based on the details provided
+    below, analyse do your best to provide movie recommendations that will appease
+    to the person asking for movie recommendations.
 
-* Movie genres: {q.client.genres}
-* Year of release from: {q.client.year_of_release_from}
-* Year of release to: {q.client.year_of_release_to}
-* Movie restrictions: {q.client.restrictions}
-'''
+    The person has a preferred genre: {q.client.genres}. \
+    The person has a preferred years of releases: {q.client.year_of_release_from} to {q.client.year_of_release_to}. \
+    Movie rating restrictions: {q.client.restrictions} \
+    Recommend list of candidate movies: []=.\
+    Return a list of boolean values and explain why the person likes or dislikes.
+
+    << FORMATTING >>
+    Return a markdown code snippet with a list of JSON object formatted to look like:
+    {{
+        "title": string \ the name of the movie in candidate movies
+        "like": boolean \ true or false
+        "explanation": string \ explain why the person likes or dislikes the candidate movie
+    }}
+
+    REMEMBER: Each boolean and explanation for each element in candidate movies.
+    REMEMBER: The explanation must relate to the person's liked and disliked movies.
+
+    '''
 
     q.page['prompt_card'] = ui.form_card(
         box='left',
@@ -259,25 +225,13 @@ async def generate_prompt(q: Q):
             ui.textbox(name='prompt', label="", value=prompt, multiline=True, height='200px'),
             ui.inline(
                 justify='center',
-                items=[ui.button(name='generate_plan', label='Generate Movie recommendations', primary=True)]
+                items=[ui.button(name='generate_movie', label='Generate Movie recommendations', primary=True)]
             )
         ]
     )
-    q.page['prompt_card_mobile'] = ui.form_card(
-        box=ui.box(zone="mobile", order=2),
-        items=[
-            ui.text_l("<b>Customized Prompt</b>"),
-            ui.textbox(name='prompt', label="", value=prompt, multiline=True, height='200px'),
-            ui.inline(
-                justify='center',
-                items=[ui.button(name='generate_plan', label='Generate Movie recommendations', primary=True)]
-            )
-        ]
-    )
-
 
 @on()
-async def generate_plan(q: Q):
+async def generate_movie(q: Q):
     """
     Handle a user interacting with the chat bot component.
 
@@ -285,7 +239,6 @@ async def generate_plan(q: Q):
     """
 
     q.client.chatbot_interaction = ChatBotInteraction(user_message=q.client.prompt)
-
     # Prepare our UI-Streaming function so that it can run while the blocking LLM message interaction runs
     update_ui = asyncio.ensure_future(stream_updates_to_ui(q))
     await q.run(chat, q.client.chatbot_interaction)
@@ -299,13 +252,10 @@ async def stream_updates_to_ui(q: Q):
     """
 
     while q.client.chatbot_interaction.responding:
-        q.page["meal_plan"].meal_plan.content = q.client.chatbot_interaction.content_to_show
-        q.page["meal_plan_mobile"].meal_plan.content = q.client.chatbot_interaction.content_to_show
+        q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
         await q.page.save()
         await q.sleep(0.1)
-
-    q.page["meal_plan"].meal_plan.content = q.client.chatbot_interaction.content_to_show
-    q.page["meal_plan_mobile"].meal_plan.content = q.client.chatbot_interaction.content_to_show
+    q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
     await q.page.save()
 
 
@@ -324,22 +274,19 @@ def chat(chatbot_interaction):
         chatbot_interaction.update_response(message)
 
     try:
-        client = H2OGPTE(address=os.getenv("H2OGPTE_URL"), api_key=os.getenv("H2OGPTE_API_TOKEN"))
+        client = H2OGPTE(address='https://h2ogpte.genai.h2o.ai', api_key='sk-Xe7ocXvl1gW4HzLnMTh8QQuIutmb6OwBAHF2sQvCgxbbeSB2')
+        collection_id = '00a25338-035a-467f-a6d0-fcdb6f8fdcf4'
 
-        collection_id = client.create_collection("temp", "")
         chat_session_id = client.create_chat_session(collection_id)
 
         with client.connect(chat_session_id) as session:
             session.query(
-                system_prompt="You are an expert at quick and easy meal planning. Do not explain yourself, "
-                              "just return the text of the meal plan.",
+                system_prompt="You are an expert at movie recommendations.",
                 message=chatbot_interaction.user_message,
                 timeout=60,
-                rag_config={"rag_type": "llm_only"},  # We are not looking at historic documents
                 callback=stream_response,
             )
 
-        client.delete_collections([collection_id])
         client.delete_chat_sessions([chat_session_id])
 
     except Exception as e:
@@ -360,6 +307,5 @@ class ChatBotInteraction:
             self.content_to_show = message.content
             self.responding = False
         elif isinstance(message, PartialChatMessage):
-            if message.content != "#### LLM Only (no RAG):\n":
-                self.llm_response += message.content
-                self.content_to_show = self.llm_response + " 🔵"
+            self.llm_response += message.content
+            self.content_to_show = self.llm_response + " 🔵"
