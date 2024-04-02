@@ -215,6 +215,7 @@ async def generate_prompt(q: Q):
 
     REMEMBER: Each boolean and explanation for each element in candidate movies.
     REMEMBER: The explanation must relate to the person's liked and disliked movies.
+    This is a test.
 
     '''
 
