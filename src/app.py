@@ -123,6 +123,19 @@ def landing_page_layout(q: Q):
         caption="Made with [Wave](https://wave.h2o.ai), [h2oGPTe](https://h2o.ai/platform/enterprise-h2ogpte)",
     )
 
+def generate_year_choices(from_year_str):
+    from_year = int(from_year_str)
+    return [ui.choice(name=str(i), label=str(i)) for i in range(from_year, 2025)]
+
+
+
+@on("year_of_release_from")
+async def update_release_to(q: Q):
+    from_year = int(q.args.year_of_release_from)
+    q.page['input_form'].year_of_release_to.choices = generate_year_choices(from_year)
+    await q.page.save()
+
+
 
 def prompt_generating_form(q):
     logger.info("")
@@ -156,7 +169,7 @@ def prompt_generating_form(q):
                               width='50%',
                               value=q.client.year_of_release_from_to,
                               trigger=True,
-                              choices=[ui.choice(name=str(i), label=str(i)) for i in year_of_release_from_to]
+                              choices=generate_year_choices(q.client.year_of_release_from)
                           ),
                         #   ui.toggle(
                         #       name='movie_description',
