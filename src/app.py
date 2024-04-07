@@ -2,6 +2,7 @@ from h2o_wave import main, app, Q, ui, run_on, copy_expando, on ,data
 import os
 import toml
 import asyncio
+import pandas as pd
 from datetime import datetime
 from loguru import logger
 from src.wave_utils import heap_analytics
@@ -26,14 +27,14 @@ async def initialize_session(q: Q):
     logger.info("Initializing the app for this browser session")
     if not q.app.initialized:
         await initialize_app(q)
-
-    q.client.restrictions = []
+    
+    #q.client.movies_list = pd.read_csv('./src/movies_full.csv')['title'].tolist()
     q.client.genres = ["science fiction", "fantasy", "drama",
               "romance", "comedy", "zombie", "action",
               "historical", "horror", "war"]
     q.client.cooking_instructions = True
     q.client.year_of_release_from = '1980'
-    q.client.year_of_release_to = '2024'
+    q.client.year_of_release_to = '2023'
 
     landing_page_layout(q)
 
@@ -58,6 +59,10 @@ async def initialize_session(q: Q):
 async def initialize_app(q: Q):
     logger.info("Initializing the app for all users and sessions - this runs the first time someone visits this app")
     q.app.toml = toml.load("app.toml")
+    movies =pd.read_csv('./src/movies_full.csv')
+    movies.dropna(inplace=True)
+    movies.reset_index(drop=True, inplace=True)
+    q.app.movies=movies['title'].tolist()
     q.app.initialized = True
 
 
@@ -140,9 +145,7 @@ def prompt_generating_form(q):
     logger.info("")
 
     # Options for movie recommendation
-    year_of_release_from = range(1980, 2025)
-    year_of_release_from_to = range(1980, 2025)
-    restrictions = ['G', 'PG', 'PG13', 'NC16', 'M18', 'R21']
+    year_of_release_from = range(1980, 2024)
     genres = ["science fiction", "fantasy", "drama",
               "romance", "comedy", "zombie", "action",
               "historical", "horror", "war"]
@@ -170,6 +173,14 @@ def prompt_generating_form(q):
                               trigger=True,
                               choices=generate_year_choices(q.client.year_of_release_from)
                           ),
+                        #   ui.dropdown(
+                        #       name='select_movie',
+                        #       label='Select Movie',
+                        #       width='50%',
+                        #       value=q.app.movies_list[0] if len(q.app.movies_list) > 0 else '',
+                        #       trigger=True,
+                        #       choices=[ui.choice(name=m, label=m) for m in q.app.movies_list]
+                        #   ),
                         #   ui.toggle(
                         #       name='movie_description',
                         #       label='Movie Description',
@@ -177,13 +188,12 @@ def prompt_generating_form(q):
                         #       value=q.client.movie_description)
                       ]),
 
-            ui.checklist(
-                name='restrictions',
-                label='Restrictions',
-                inline=True,
+            ui.dropdown(
+                name='select_movie',
+                label='Select a favourite movie from thiis list',
                 trigger=True,
-                values=q.client.restrictions,
-                choices=[ui.choice(name=i, label=i) for i in restrictions]
+                value=q.app.movies[0] if len(q.app.movies) > 0 else '',
+                choices=[ui.choice(name=m, label=m) for m in q.app.movies]
             ),
 
             ui.checklist(
@@ -206,14 +216,14 @@ async def generate_prompt(q: Q):
     # if q.client.movie_description
     #     movie_description = " Include  movie description for each movie."
 
-    prompt = f'''
+    q.client.prompt = f'''
     You are an expert in movies. Using your knowledge and based on the details provided
     below, analyse do your best to provide movie recommendations that will appease
     to the person asking for movie recommendations.
 
     The person has a preferred genre: {q.client.genres}. \
     The person has a preferred years of releases: {q.client.year_of_release_from} to {q.client.year_of_release_to}. \
-    Movie rating restrictions: {q.client.restrictions} \
+    User selected movie: {q.args.select_movie}
     Recommend list of candidate movies: []=.\
     Return a list of boolean values and explain why the person likes or dislikes.
 
@@ -233,8 +243,8 @@ async def generate_prompt(q: Q):
     q.page['prompt_card'] = ui.form_card(
         box='left',
         items=[
-            ui.text_l("<b>Customized Prompt</b>"),
-            ui.textbox(name='prompt', label="", value=prompt, multiline=True, height='200px'),
+            #ui.text_l("<b>Customized Prompt</b>"),
+            #ui.textbox(name='prompt', label="", value=prompt, multiline=True, height='200px'),
             ui.inline(
                 justify='center',
                 items=[ui.button(name='generate_movie', label='Generate Movie recommendations', primary=True)]
