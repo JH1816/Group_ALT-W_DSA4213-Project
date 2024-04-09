@@ -41,13 +41,17 @@ collection_id = client.create_collection(
 # Upload documents
 # Many file types are supported: text/image/audio documents and archives
 
-with open('movie_data_for_ingestion.pdf', 'rb') as f:
-    data_for_ingestion = client.upload('movie_data_for_ingestion.pdf', f)
+with open('movielens_data_for_ingestion.xlsx', 'rb') as f:
+    movielens_data_for_ingestion = client.upload('movielens_data_for_ingestion.xlsx', f)
 
-client.ingest_uploads(collection_id, [data_for_ingestion])
+with open('wikipedia_movie_data_for_ingestion.xlsx', 'rb') as f:
+    wikipedia_movie_data_for_ingestion = client.upload('wikipedia_movie_data_for_ingestion.xlsx', f)
+
+
+client.ingest_uploads(collection_id, [movielens_data_for_ingestion, wikipedia_movie_data_for_ingestion])
 
 # Create a chat session
-chat_session_id = client.create_chat_session('f6ea3a8f-143f-4006-9be3-a74054e96a00')
+chat_session_id = client.create_chat_session('3cdf2f07-c4cb-4d05-9cf7-9935488fab27')
 
 # Query the collection
 with client.connect(chat_session_id) as session:

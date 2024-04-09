@@ -1,8 +1,6 @@
 import requests
 import pandas as pd
 from json import loads, dumps
-import pdfkit
-import glob
 
 # Wikipedia Movie Data
 def wikipedia_movie_data():
@@ -55,26 +53,25 @@ def movielens_data():
     final_movie_data = pd.merge(movielens_data,grouped_tags_data,on="movieId",how='left')
     final_movie_data[['movie title', 'release year']] = final_movie_data['title'].str.extract(r'([^\(]+)\s*\((\d{4})\)')
     final_movie_data.rename(columns={'tag': 'additional information'}, inplace=True)
+    final_movie_data['additional information'] = final_movie_data['movie title'] + " is " + final_movie_data['additional information']
     final_movie_data = final_movie_data[["movie title","release year","genres","additional information"]]
     return final_movie_data
 
-def process_data_for_ingestion():
-    """
-    Combine movie data of Wikipedia and Movie Lens.
-    """
-    movielens_data_ = movielens_data()
-    Wikipedia_movie_data = wikipedia_movie_data()
-    final_data = pd.concat([movielens_data_,Wikipedia_movie_data],axis=0)
-    final_data = final_data.reset_index(drop=True)
-    return final_data
+# movielens_data_for_ingestion = movielens_data()
+# wikipedia_movie_data_for_ingestion = wikipedia_movie_data()
 
-# Below is to convert dataframe to html
-# data_for_ingestion = process_data_for_ingestion()
-# data_for_ingestion.to_html('movie_data_for_ingestion.html')
+# df = pd.DataFrame(movielens_data_for_ingestion)
 
-# Below is to convert html to pdf
-# config = pdfkit.configuration(wkhtmltopdf='C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe')
-# for file in glob.glob('./*.html'):
-#     pdfkit.from_file(file, file[:-4]+'.pdf', configuration=config)
+# # Step 1: Identify non-ASCII characters
+# non_ascii_columns = df.select_dtypes(include=['object']).apply(lambda x: x.str.contains('[^\x00-\x7F]', regex=True)).any()
 
+# # Step 2: Check encoding (Assuming UTF-8 by default)
+# print(df.head())
+
+# # Step 3: Remove non-ASCII characters
+# df.replace({r'[^\x00-\x7F]+':''}, regex=True, inplace=True)
+
+# df.to_excel("movielens_data_for_ingestion.xlsx")
+
+# wikipedia_movie_data_for_ingestion.to_excel("wikipedia_movie_data_for_ingestion.xlsx",index=False)
 
