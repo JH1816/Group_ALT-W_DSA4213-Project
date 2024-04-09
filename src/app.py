@@ -8,7 +8,8 @@ from loguru import logger
 from src.wave_utils import heap_analytics
 from h2ogpte import H2OGPTE
 from h2ogpte.types import ChatMessage, PartialChatMessage
-
+from format_output_combine_result.format_output_combine_result import format_LLM_output
+from format_output_combine_result.format_output_combine_result import generate_dataframe_as_h2o_content
 
 @app('/')
 async def serve(q: Q):
@@ -64,7 +65,6 @@ async def initialize_app(q: Q):
     movies.reset_index(drop=True, inplace=True)
     q.app.movies=movies['title'].tolist()
     q.app.initialized = True
-
 
 def landing_page_layout(q: Q):
     logger.info("")
@@ -207,7 +207,7 @@ def prompt_generating_form(q):
         ]
     )
 
-    q.page["movie_recommendation"] = ui.form_card(box="right", items=[ui.text(name="movie_recommendation", content="")])
+    q.page["movie_recommendation"] = ui.form_card(title="Movie Recommendations", box="right", items=[ui.text(name="movie_recommendation", content="Waiting for Input")])
 
 @on()
 async def generate_prompt(q: Q):
@@ -276,8 +276,15 @@ async def stream_updates_to_ui(q: Q):
         q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
         await q.page.save()
         await q.sleep(0.1)
-    q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
+    try:
+        reply_content = q.client.chatbot_interaction.content_to_show
+        result_df = format_LLM_output(reply_content)
+        result_content = generate_dataframe_as_h2o_content(result_df)
+        q.page["movie_recommendation"] = result_content
+    except Exception as e:
+        q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
     await q.page.save()
+ 
 
 
 def chat(chatbot_interaction):
@@ -296,7 +303,7 @@ def chat(chatbot_interaction):
 
     try:
         client = H2OGPTE(address='https://h2ogpte.genai.h2o.ai', api_key='sk-Xe7ocXvl1gW4HzLnMTh8QQuIutmb6OwBAHF2sQvCgxbbeSB2')
-        collection_id = '00a25338-035a-467f-a6d0-fcdb6f8fdcf4'
+        collection_id = '3cdf2f07-c4cb-4d05-9cf7-9935488fab27'
 
         chat_session_id = client.create_chat_session(collection_id)
 
