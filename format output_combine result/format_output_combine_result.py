@@ -12,28 +12,33 @@ def format_LLM_output(reply):
     movie_string_processed2 = re.findall(pattern2,movie_string_processed1)
     
     title_data = []
-    like_data = []
+    release_year_data = []
+    genre_data = []
     explanation_data = []
 
 
     title_pattern = r'"title":\s*"([^"]*)"'
-    like_pattern = r'"like":\s*(.*?)(?=,)'
+    release_year_pattern = r'"release year":\s*(.*?)(?=,)'
+    genre_pattern = r'"genre":\s*(.*?)(?=,)'
     explanation_pattern = r'"explanation":\s*"([^"]*)"'
 
     for s in movie_string_processed2:
         title = re.search(title_pattern,s).group(1)
-        like = re.search(like_pattern,s).group(1)
+        release_year = re.search(release_year_pattern,s).group(1)
+        genre = re.search(genre_pattern,s).group(1)
         explanation = re.search(explanation_pattern,s).group(1)
 
         title_data.append(title)
-        like_data.append(like)
+        release_year_data.append(release_year)
+        genre_data.append(genre)
         explanation_data.append(explanation)
 
     source_data = ["LLM + RAG"]*len(title_data)
 
     data = {
         'Title': title_data,
-        'Like': like_data,
+        'Release Year': release_year_data,
+        'Genre': genre_data,
         'Source': source_data,
         'Explanation': explanation_data
     }
@@ -58,7 +63,6 @@ def sequence_of_ordinals(start, end):
 
 def format_collaborative_output(list_of_movies_recommended):
     title_data = list_of_movies_recommended
-    like_data = ["true"]*len(title_data)
     source_data = ["collborative filtering"]*len(title_data)
     explanation_data = []
 
@@ -66,9 +70,13 @@ def format_collaborative_output(list_of_movies_recommended):
     for i in range(len(title_data)):
         explanation = "This is the " + sequence[i] + " movie recommended by Collaborative Filtering algorithm."
         explanation_data.append(explanation)
+    
+    # Need to be modified for the Release Year and Genre
+    
     data = {
         'Title': title_data,
-        'Like': like_data,
+        'Release Year': [2010]*5,
+        'Genre': ["Fantasy"]*5,
         'Source': source_data,
         'Explanation': explanation_data
     }
