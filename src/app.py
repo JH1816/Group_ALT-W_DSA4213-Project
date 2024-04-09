@@ -190,7 +190,7 @@ def prompt_generating_form(q):
 
             ui.dropdown(
                 name='select_movie',
-                label='Select a favourite movie from thiis list',
+                label='Select a favourite movie from this list',
                 trigger=True,
                 value=q.app.movies[0] if len(q.app.movies) > 0 else '',
                 choices=[ui.choice(name=m, label=m) for m in q.app.movies]
@@ -217,27 +217,26 @@ async def generate_prompt(q: Q):
     #     movie_description = " Include  movie description for each movie."
 
     q.client.prompt = f'''
-    You are an expert in movies. Using your knowledge and based on the details provided
-    below, analyse do your best to provide movie recommendations that will appease
-    to the person asking for movie recommendations.
+    As a movie enthusiast with expertise in the field, your task is to utilize your 
+    knowledge and the given information to analyze and offer tailored movie
+    suggestions that align with the preferences of the person seeking recommendations.
 
     The person has a preferred genre: {q.client.genres}. \
     The person has a preferred years of releases: {q.client.year_of_release_from} to {q.client.year_of_release_to}. \
-    User selected movie: {q.args.select_movie}
-    Recommend list of candidate movies: []=.\
-    Return a list of boolean values and explain why the person likes or dislikes.
+    The person's favourite movie: {q.args.select_movie}
+    Recommend list of movies using below formatting:
 
     << FORMATTING >>
-    Return a markdown code snippet with a list of JSON object formatted to look like:
+    Return a markdown code snippet with a list of JSON object formatted as below:
     {{
-        "title": string \ the name of the movie in candidate movies
-        "like": boolean \ true or false
-        "explanation": string \ explain why the person likes or dislikes the candidate movie
+        "title": string \ Denotes the title of a movie
+        "release year": integer \ Denotes the released year of the movie
+        "genre": string \ Denotes the genre of the movie
+        "explanation": string \ Provide an explanation about why the person likes this movie.
     }}
 
-    REMEMBER: Each boolean and explanation for each element in candidate movies.
-    REMEMBER: The explanation must relate to the person's liked and disliked movies.
-
+    Important Note: The movie release year must be within the person's preferred years of releases.
+    Important Note: The explanation must be relevant to the person's preferences for the movies.
     '''
 
     q.page['prompt_card'] = ui.form_card(
