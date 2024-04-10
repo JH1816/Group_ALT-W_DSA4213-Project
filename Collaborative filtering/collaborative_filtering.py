@@ -9,12 +9,6 @@ Original file is located at
 
 import pandas as pd
 import numpy as np
-from zipfile import ZipFile
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-from pathlib import Path
-import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 
 
