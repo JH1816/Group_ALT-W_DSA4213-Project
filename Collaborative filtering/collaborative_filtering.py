@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 
 
-movies = pd.read_csv("movies_full.csv")
-df = pd.read_csv("ratings.csv", index_col = 0)
+movies = pd.read_csv("../data/movies_full.csv")
+df = pd.read_csv("../data/ratings.csv", index_col = 0)
 
 
 movies = movies[['movieId', 'title', 'year_of_release','genres', 'extract']]
