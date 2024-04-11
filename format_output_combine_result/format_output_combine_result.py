@@ -102,7 +102,7 @@ def generate_dataframe_as_h2o_content(df):
     table_style = """
             .custom-table table {
                 border-collapse: collapse;
-                width: 100%;
+                width: 150%;
             }
             .custom-table th, .custom-table td {
                 border: 1px solid #dddddd;
