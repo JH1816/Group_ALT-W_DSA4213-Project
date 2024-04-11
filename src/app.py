@@ -2,6 +2,7 @@ from h2o_wave import main, app, Q, ui, run_on, copy_expando, on ,data
 import os
 import toml
 import asyncio
+import joblib
 import pandas as pd
 from datetime import datetime
 from loguru import logger
@@ -29,13 +30,13 @@ async def initialize_session(q: Q):
     if not q.app.initialized:
         await initialize_app(q)
     
-    #q.client.movies_list = pd.read_csv('./src/movies_full.csv')['title'].tolist()
     q.client.genres = ["science fiction", "fantasy", "drama",
               "romance", "comedy", "zombie", "action",
               "historical", "horror", "war"]
     q.client.cooking_instructions = True
     q.client.year_of_release_from = '1980'
     q.client.year_of_release_to = '2023'
+    q.client.select_movie = 'Toy Story'
 
     landing_page_layout(q)
 
@@ -60,10 +61,29 @@ async def initialize_session(q: Q):
 async def initialize_app(q: Q):
     logger.info("Initializing the app for all users and sessions - this runs the first time someone visits this app")
     q.app.toml = toml.load("app.toml")
-    movies =pd.read_csv('./src/movies_full.csv')
-    movies.dropna(inplace=True)
-    movies.reset_index(drop=True, inplace=True)
-    q.app.movies=movies['title'].tolist()
+    movies_list =pd.read_csv('./data/movies_full.csv')
+    movies_list.dropna(inplace=True)
+    movies_list.reset_index(drop=True, inplace=True)
+    
+    movies = pd.read_csv("./data/movies_full.csv")
+    df = pd.read_csv("./data/ratings.csv", index_col = 0)
+    movies = movies[['movieId', 'title', 'year_of_release','genres', 'extract']]
+    movies.rename(columns={'extract': 'Explanation', 'year_of_release':'Release Year'}, inplace = True)
+    movies = movies.dropna()
+    movies['Source'] = 'collaborative filtering'
+
+
+    pivot_df = df.pivot_table(index='movieId', columns='userId', values='rating')
+    pivot_df = pivot_df.fillna(0)
+
+
+    # Drop columns with all zeros (movies not rated by any user)
+    q.app.movies = movies
+    q.app.pivot_df_filtered = pivot_df.loc[:, (pivot_df != 0).any(axis=0)]
+    q.app.model = joblib.load('collaborative_filtering.pkl' , mmap_mode ='r')
+    q.args.select_movie = 'Toy Story'
+
+    q.app.movies_list=movies_list['title'].tolist()
     q.app.initialized = True
 
 def landing_page_layout(q: Q):
@@ -132,6 +152,36 @@ def generate_year_choices(from_year_str):
     from_year = int(from_year_str)
     return [ui.choice(name=str(i), label=str(i)) for i in range(from_year, 2025)]
 
+def movie_recommender(movie_title,movies, pivot_df_filtered, model,k=10):
+    # Find the movieId of the input movie title
+    movie_id = movies[movies['title'].str.contains(movie_title, case=False)]['movieId'].values[0]
+
+    # Find the k-nearest neighbors of the input movie
+    distances, indices = model.kneighbors(pivot_df_filtered.loc[movie_id].values.reshape(1, -1), n_neighbors=k+1)
+
+    # Get the movieIds of the k-nearest neighbors
+    neighbor_movie_ids = pivot_df_filtered.iloc[indices[0][1:]].index.tolist()
+
+    # Get the movie titles and genres from the movies DataFrame
+    neighbor_movies_info = movies[movies['movieId'].isin(neighbor_movie_ids)][['title', 'Release Year', 'genres','Source', 'Explanation']]
+
+    neighbor_movies_df = pd.DataFrame(neighbor_movies_info)
+    neighbor_movies_df['genres'] = neighbor_movies_df['genres'].str.replace('|', ',')
+    neighbor_movies_df = neighbor_movies_df.rename(columns={'title': 'Title', 'genres': 'Genres'})
+
+    return neighbor_movies_df
+
+def make_markdown_row(values):
+    return f"| {' | '.join([str(x) for x in values])} |"
+
+
+def make_markdown_table(fields, rows):
+    return '\n'.join([
+        make_markdown_row(fields),
+        make_markdown_row('-' * len(fields)),
+        '\n'.join([make_markdown_row(row) for row in rows]),
+    ])
+
 
 
 @on("year_of_release_from")
@@ -173,27 +223,14 @@ def prompt_generating_form(q):
                               trigger=True,
                               choices=generate_year_choices(q.client.year_of_release_from)
                           ),
-                        #   ui.dropdown(
-                        #       name='select_movie',
-                        #       label='Select Movie',
-                        #       width='50%',
-                        #       value=q.app.movies_list[0] if len(q.app.movies_list) > 0 else '',
-                        #       trigger=True,
-                        #       choices=[ui.choice(name=m, label=m) for m in q.app.movies_list]
-                        #   ),
-                        #   ui.toggle(
-                        #       name='movie_description',
-                        #       label='Movie Description',
-                        #       trigger=True,
-                        #       value=q.client.movie_description)
                       ]),
 
             ui.dropdown(
                 name='select_movie',
                 label='Select a favourite movie from this list',
                 trigger=True,
-                value=q.app.movies[0] if len(q.app.movies) > 0 else '',
-                choices=[ui.choice(name=m, label=m) for m in q.app.movies]
+                value=q.app.movies_list[0] if len(q.app.movies_list) > 0 else 'Toy Story',
+                choices=[ui.choice(name=m, label=m) for m in q.app.movies_list]
             ),
 
             ui.checklist(
@@ -208,6 +245,7 @@ def prompt_generating_form(q):
     )
 
     q.page["movie_recommendation"] = ui.form_card(title="Movie Recommendations", box="right", items=[ui.text(name="movie_recommendation", content="Waiting for Input")])
+    q.page["movie_recommendation2"] = ui.form_card(title="Movie Recommendations from collaborative filtering", box="right", items=[ui.text(name="movie_recommendation2", content="Waiting for Input")])
 
 @on()
 async def generate_prompt(q: Q):
@@ -223,7 +261,7 @@ async def generate_prompt(q: Q):
 
     The person has a preferred genre: {q.client.genres}. \
     The person has a preferred years of releases: {q.client.year_of_release_from} to {q.client.year_of_release_to}. \
-    The person's favourite movie: {q.args.select_movie}
+    The person's favourite movie: {q.client.select_movie}
     Recommend list of movies using below formatting:
 
     << FORMATTING >>
@@ -242,14 +280,16 @@ async def generate_prompt(q: Q):
     q.page['prompt_card'] = ui.form_card(
         box='left',
         items=[
-            #ui.text_l("<b>Customized Prompt</b>"),
-            #ui.textbox(name='prompt', label="", value=prompt, multiline=True, height='200px'),
+            ui.text_l("<b>Customized Prompt</b>"),
+            ui.textbox(name='prompt', label="", value=q.client.prompt, multiline=True, height='200px'),
             ui.inline(
                 justify='center',
                 items=[ui.button(name='generate_movie', label='Generate Movie recommendations', primary=True)]
             )
         ]
     )
+    
+
 
 @on()
 async def generate_movie(q: Q):
@@ -258,7 +298,16 @@ async def generate_movie(q: Q):
 
     :param q: The query object for H2O Wave that has important app information.
     """
-
+    collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
+    q.page["movie_recommendation2"] = ui.form_card(
+            box='right',
+            items=[
+                ui.text(make_markdown_table(
+                    fields=collaborative_filterring_df.columns.tolist(),
+                    rows=collaborative_filterring_df.values.tolist(),
+                ))
+        ]  
+    )
     q.client.chatbot_interaction = ChatBotInteraction(user_message=q.client.prompt)
     # Prepare our UI-Streaming function so that it can run while the blocking LLM message interaction runs
     update_ui = asyncio.ensure_future(stream_updates_to_ui(q))
@@ -271,16 +320,42 @@ async def stream_updates_to_ui(q: Q):
     Update the app's UI every 1/10th of a second with values from our chatbot interaction
     :param q: The query object stored by H2O Wave with information about the app and user behavior.
     """
+    
 
     while q.client.chatbot_interaction.responding:
         q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
+        #q.page["movie_recommendation2"] = ui.form_card(title="Movie Recommendations from collaborative filtering", box="right", items=[ui.text(name="movie_recommendation2", content="loading recommendation")])
         await q.page.save()
         await q.sleep(0.1)
     try:
+        #collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
         reply_content = q.client.chatbot_interaction.content_to_show
         result_df = format_LLM_output(reply_content)
-        result_content = generate_dataframe_as_h2o_content(result_df)
-        q.page["movie_recommendation"] = result_content
+        #df = pd.concat([result_df,collaborative_filterring_df])
+        #result_content = generate_dataframe_as_h2o_content(result_df)
+        #collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
+        
+        q.page["movie_recommendation"] = ui.form_card(
+            box='right',
+            items=[
+                ui.text(make_markdown_table(
+                    fields=result_df.columns.tolist(),
+                    rows=result_df.values.tolist(),
+                ))
+                ]  
+            )
+    #     collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
+    #     q.page["movie_recommendation2"] = ui.form_card(
+    #         box='right',
+    #         items=[
+    #             ui.text(make_markdown_table(
+    #                 fields=collaborative_filterring_df.columns.tolist(),
+    #                 rows=collaborative_filterring_df.values.tolist(),
+    #             ))
+    #     ]  
+    # )
+        #q.page["movie_recommendation"] = result_content
+        #q.page["movie_recommendation"] = collaborative_filterring_df
     except Exception as e:
         q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
     await q.page.save()
@@ -305,7 +380,8 @@ def chat(chatbot_interaction):
         client = H2OGPTE(address='https://h2ogpte.genai.h2o.ai', api_key='sk-Xe7ocXvl1gW4HzLnMTh8QQuIutmb6OwBAHF2sQvCgxbbeSB2')
         collection_id = '3cdf2f07-c4cb-4d05-9cf7-9935488fab27'
 
-        chat_session_id = client.create_chat_session(collection_id)
+        #chat_session_id = client.create_chat_session(collection_id)
+        chat_session_id = '6fbe24d2-5fcb-493d-9984-85140434cbdf'
 
         with client.connect(chat_session_id) as session:
             session.query(
@@ -315,7 +391,7 @@ def chat(chatbot_interaction):
                 callback=stream_response,
             )
 
-        client.delete_chat_sessions([chat_session_id])
+        #client.delete_chat_sessions([chat_session_id])
 
     except Exception as e:
         logger.error(e)
