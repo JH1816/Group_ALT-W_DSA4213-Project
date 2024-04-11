@@ -167,7 +167,7 @@ def movie_recommender(movie_title,movies, pivot_df_filtered, model,k=10):
 
     neighbor_movies_df = pd.DataFrame(neighbor_movies_info)
     neighbor_movies_df['genres'] = neighbor_movies_df['genres'].str.replace('|', ',')
-    neighbor_movies_df = neighbor_movies_df.rename(columns={'title': 'Title', 'genres': 'Genres'})
+    neighbor_movies_df = neighbor_movies_df.rename(columns={'title': 'Title', 'genres': 'Genre'})
 
     return neighbor_movies_df
 
@@ -245,7 +245,7 @@ def prompt_generating_form(q):
     )
 
     q.page["movie_recommendation"] = ui.form_card(title="Movie Recommendations", box="right", items=[ui.text(name="movie_recommendation", content="Waiting for Input")])
-    q.page["movie_recommendation2"] = ui.form_card(title="Movie Recommendations from collaborative filtering", box="right", items=[ui.text(name="movie_recommendation2", content="Waiting for Input")])
+    # q.page["movie_recommendation2"] = ui.form_card(title="Movie Recommendations from collaborative filtering", box="right", items=[ui.text(name="movie_recommendation2", content="Waiting for Input")])
 
 @on()
 async def generate_prompt(q: Q):
@@ -299,15 +299,15 @@ async def generate_movie(q: Q):
     :param q: The query object for H2O Wave that has important app information.
     """
     collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
-    q.page["movie_recommendation2"] = ui.form_card(
-            box='right',
-            items=[
-                ui.text(make_markdown_table(
-                    fields=collaborative_filterring_df.columns.tolist(),
-                    rows=collaborative_filterring_df.values.tolist(),
-                ))
-        ]  
-    )
+    # q.page["movie_recommendation2"] = ui.form_card(
+    #         box='right',
+    #         items=[
+    #             ui.text(make_markdown_table(
+    #                 fields=collaborative_filterring_df.columns.tolist(),
+    #                 rows=collaborative_filterring_df.values.tolist(),
+    #             ))
+    #     ]  
+    # )
     q.client.chatbot_interaction = ChatBotInteraction(user_message=q.client.prompt)
     # Prepare our UI-Streaming function so that it can run while the blocking LLM message interaction runs
     update_ui = asyncio.ensure_future(stream_updates_to_ui(q))
@@ -328,22 +328,24 @@ async def stream_updates_to_ui(q: Q):
         await q.page.save()
         await q.sleep(0.1)
     try:
-        #collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
+        collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
+        # collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
         reply_content = q.client.chatbot_interaction.content_to_show
         result_df = format_LLM_output(reply_content)
-        #df = pd.concat([result_df,collaborative_filterring_df])
-        #result_content = generate_dataframe_as_h2o_content(result_df)
+        final_df = pd.concat([result_df,collaborative_filterring_df], axis=0,ignore_index=True)
+        result_content = generate_dataframe_as_h2o_content(final_df)
         #collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
         
-        q.page["movie_recommendation"] = ui.form_card(
-            box='right',
-            items=[
-                ui.text(make_markdown_table(
-                    fields=result_df.columns.tolist(),
-                    rows=result_df.values.tolist(),
-                ))
-                ]  
-            )
+        q.page["movie_recommendation"] = result_content
+        # q.page["movie_recommendation"] = ui.form_card(
+        #     box='right',
+        #     items=[
+        #         ui.text(make_markdown_table(
+        #             fields=final_df.columns.tolist(),
+        #             rows=final_df.values.tolist(),
+        #         ))
+        #         ]  
+        #     )
     #     collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
     #     q.page["movie_recommendation2"] = ui.form_card(
     #         box='right',
