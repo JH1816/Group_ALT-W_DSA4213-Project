@@ -3,3 +3,5 @@ loguru
 toml
 h2ogpte
 pandas
+joblib
+scikit-learn
