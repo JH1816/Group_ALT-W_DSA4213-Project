@@ -3,7 +3,6 @@
 Let AI recommend movies to you
 
 ## To run the app Locally
-```shell script
 python3.10 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ./venv/bin/wave run src/app.py
@@ -53,13 +52,14 @@ Large Language Model: The RAG framework incorporates the `LLM Mixtral-8x7B` lang
 
 ## Format LLM Output (format_LLM_output directory)
 
-### Overview
+## Overview
 This folder contains scripts for formatting the output of a Language Model (LLM) into a structured format, specifically tailored for movie recommendations. 
 
-### Contents
+## Contents
 1. `format_LLM_output.py`: This script includes two functions designed to handle the output of an LLM model and format it into a Pandas DataFrame:
    - **`format_LLM_output`**: Extracts movie recommendations from the LLM reply content and formats them into a Pandas DataFrame. This function parses the output text of the LLM model and extracts relevant movie recommendations.
    - **`generate_dataframe_as_h2o_content`**: Generates a UI form card in H2O Wave containing a table representing the provided Pandas DataFrame. This function prepares the DataFrame in a format suitable for displaying in a UI, facilitating easy visualization and interaction.
 
-### Usage
+## Usage
 The two functions (**`format_LLM_output`** and *`generate_dataframe_as_h2o_content`**) are imported to the `app.py` in `src` directory to process the output of the LLM model and generate a UI form card in H2O Wave containing a table representing the provided DataFrame.
+
