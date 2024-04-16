@@ -9,8 +9,8 @@ from loguru import logger
 from src.wave_utils import heap_analytics
 from h2ogpte import H2OGPTE
 from h2ogpte.types import ChatMessage, PartialChatMessage
-from format_output_combine_result.format_output_combine_result import format_LLM_output
-from format_output_combine_result.format_output_combine_result import generate_dataframe_as_h2o_content
+from format_LLM_output.format_LLM_output import format_LLM_output
+from format_LLM_output.format_LLM_output import generate_dataframe_as_h2o_content
 
 @app('/')
 async def serve(q: Q):
