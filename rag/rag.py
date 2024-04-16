@@ -1,5 +1,6 @@
 from h2ogpte import H2OGPTE
 
+# Define the prompt template for movie recommendations
 prompt = '''
     As a movie enthusiast with expertise in the field, your task is to utilize your 
     knowledge and the given information to analyze and offer tailored movie
@@ -24,45 +25,46 @@ prompt = '''
     Important Note: The explanation must be relevant to the individual's preferences for liked and disliked movies.
     '''
 
+# Customize the prompt for different preferences
 prompt1 = prompt.format("Horror","2000","2010","Playback")
 prompt2 = prompt.format("fantasy","2010", "2020", "Toy Story")
 
+# Initialize the H2OGPTE client
 client = H2OGPTE(
     address='https://h2ogpte.genai.h2o.ai',
     api_key='sk-Xe7ocXvl1gW4HzLnMTh8QQuIutmb6OwBAHF2sQvCgxbbeSB2',       
 )
 
-# Create a new collection
+# Create a new collection for the movie recommendation system
 collection_id = client.create_collection(
     name='Movie Recommendation System_Collection',
     description='To enhance the movie-watching experience, we propose a movie recommendation system which uses data analytics and advanced machine-learning techniques to deliver personalized movie suggestions',
 )
 
-# Upload documents
-# Many file types are supported: text/image/audio documents and archives
-
+# Upload movie data documents to the collection
 with open('movielens_data_for_ingestion.xlsx', 'rb') as f:
     movielens_data_for_ingestion = client.upload('movielens_data_for_ingestion.xlsx', f)
 
 with open('wikipedia_movie_data_for_ingestion.xlsx', 'rb') as f:
     wikipedia_movie_data_for_ingestion = client.upload('wikipedia_movie_data_for_ingestion.xlsx', f)
 
-
+# Ingest uploaded documents into the collection
 client.ingest_uploads(collection_id, [movielens_data_for_ingestion, wikipedia_movie_data_for_ingestion])
 
-# Create a chat session
+# Create a chat session for interacting with the recommendation system
 chat_session_id = client.create_chat_session('3cdf2f07-c4cb-4d05-9cf7-9935488fab27')
 
-# Query the collection
+# Query the collection with the provided prompts
 with client.connect(chat_session_id) as session:
+    # Query for movie recommendations based on the first prompt
     reply = session.query(
         prompt1,
         timeout=60,
     )
     print(reply.content)
-
-    reply = session.query(
+    # Query for movie recommendations based on the second prompt
+    reply2 = session.query(
         prompt2,
         timeout=60,
     )
-    print(reply.content)
+    print(reply2.content)
