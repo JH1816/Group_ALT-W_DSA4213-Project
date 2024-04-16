@@ -4,6 +4,23 @@ from h2o_wave import site, ui,main, app, Q, ui
 import pandas as pd
 
 def format_LLM_output(reply_content):
+    """
+    Extracts movie recommendations from the LLM reply content and formats them into a Pandas DataFrame.
+
+    Parameters:
+        reply_content (str): The content containing movie recommendations.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing movie recommendations with columns for title, release year, genre, source, and explanation.
+
+    Example:
+        >>> reply_content = 'Here are some movie recommendations: [{"title": "Movie1", "release year": 2020, "genre": "Action", "explanation": "A thrilling action-packed movie."}, {"title": "Movie2", "release year": 2019, "genre": "Comedy", "explanation": "A hilarious comedy with great performances."}]'
+        >>> format_LLM_output(reply_content)
+           Title  Release Year   Genre      Source                               Explanation
+        0  Movie1          2020  Action  LLM + RAG               A thrilling action-packed movie.
+        1  Movie2          2019  Comedy  LLM + RAG  A hilarious comedy with great performances.
+    """
+    # Extracting movie recommendations from the reply content
     pattern1 = r'\[([^\]]+)\]'
     movie_recommendations_string = re.findall(pattern1,reply_content)[0]
     movie_string_processed1 = movie_recommendations_string.replace("\n", "")
@@ -11,11 +28,11 @@ def format_LLM_output(reply_content):
     pattern2 = r'\{(.*?)\}'
     movie_string_processed2 = re.findall(pattern2,movie_string_processed1)
     
+    # Extracting data from each movie recommendation
     title_data = []
     release_year_data = []
     genre_data = []
     explanation_data = []
-
 
     title_pattern = r'"title":\s*"([^"]*)"'
     release_year_pattern = r'"release year":\s*(.*?)(?=,)'
@@ -33,6 +50,7 @@ def format_LLM_output(reply_content):
         genre_data.append(genre)
         explanation_data.append(explanation)
 
+    # Creating a DataFrame with the extracted data
     source_data = ["LLM + RAG"]*len(title_data)
 
     data = {
@@ -48,51 +66,38 @@ def format_LLM_output(reply_content):
     # Displaying the DataFrame
     return(result_df)
 
-
-def number_to_ordinal(n):
-    suffix = ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th']
-    if 10 <= n % 100 <= 20:
-        suffix_index = 0
-    else:
-        suffix_index = n % 10
-    return str(n) + suffix[suffix_index]
-
-def sequence_of_ordinals(start, end):
-    return [number_to_ordinal(i) for i in range(start, end + 1)]
-
-
-def format_collaborative_output(list_of_movies_recommended):
-    title_data = list_of_movies_recommended
-    source_data = ["collborative filtering"]*len(title_data)
-    explanation_data = []
-
-    sequence = sequence_of_ordinals(1, 10)
-    for i in range(len(title_data)):
-        explanation = "This is the " + sequence[i] + " movie recommended by Collaborative Filtering algorithm."
-        explanation_data.append(explanation)
-    
-    # Need to be modified for the Release Year and Genre
-    
-    data = {
-        'Title': title_data,
-        'Release Year': [2010]*5,
-        'Genre': ["Fantasy"]*5,
-        'Source': source_data,
-        'Explanation': explanation_data
-    }
-    result_df = pd.DataFrame(data)
-    return(result_df)
-
-
-def combine_LLM_CF_results(reply, list_of_movies_recommended):
-    LLM_df = format_LLM_output(reply)
-    CF_df = format_collaborative_output(list_of_movies_recommended)
-    result_df = pd.concat([LLM_df, CF_df], axis=0,ignore_index=True)
-    return result_df
-    
 def generate_dataframe_as_h2o_content(df):
+    """
+    Generates a UI form card in h2o wave containing a table representing the provided Pandas DataFrame.
 
+    Parameters:
+        df (pd.DataFrame): The Pandas DataFrame to be displayed.
+
+    Returns:
+        ui.FormCard: A UI form card containing the table representing the DataFrame.
+
+    Example:
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'Title': ['Movie1', 'Movie2'], 'Release Year': [2020, 2019], 'Genre': ['Action', 'Comedy']})
+        >>> generate_dataframe_as_h2o_content(df)
+    """
+    
     def df_to_list_of_dicts(df):
+        """
+        Converts a Pandas DataFrame to a list of dictionaries.
+
+        Parameters:
+            df (pd.DataFrame): The Pandas DataFrame to be converted.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the DataFrame rows.
+
+        Example:
+            >>> import pandas as pd
+            >>> df = pd.DataFrame({'Title': ['Movie1', 'Movie2'], 'Release Year': [2020, 2019], 'Genre': ['Action', 'Comedy']})
+            >>> df_to_list_of_dicts(df)
+            [{'Title': 'Movie1', 'Release Year': 2020, 'Genre': 'Action'}, {'Title': 'Movie2', 'Release Year': 2019, 'Genre': 'Comedy'}]
+        """
         return df.to_dict(orient='records')
 
     # Convert Pandas DataFrame to list of dictionaries
@@ -110,7 +115,7 @@ def generate_dataframe_as_h2o_content(df):
                 padding: 8px;
             }
             """
-
+    # Generate UI form card with table
     content = ui.form_card(
             box='right',
             items=[
