@@ -16,19 +16,19 @@ export H2OGPT_URL="https://**.h2ogpt.h2o.ai"
 
 ## To run the app Locally (Windows version)
 
-:: Create virtual environment
+### Create virtual environment
 py -m venv venv
 
-:: Activate virtual environment
+### Activate virtual environment
 venv\Scripts\activate
 
-:: Install requirements
+### Install requirements
 venv\Scripts\pip install -r requirements.txt
 
-:: Run application
+### Run application
 venv\Scripts\wave run src\app.py
 
-:: Set environment variables
+### Set environment variables
 set H2OGPT_API_TOKEN=
 set H2OGPT_URL=https://**.h2ogpt.h2o.ai
 
