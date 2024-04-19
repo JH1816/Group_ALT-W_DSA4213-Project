@@ -14,7 +14,7 @@ export H2OGPT_API_TOKEN=""
 
 export H2OGPT_URL="https://**.h2ogpt.h2o.ai"
 
-## To run the app Locally (Window version)
+## To run the app Locally (Windows version)
 
 :: Create virtual environment
 py -m venv venv
