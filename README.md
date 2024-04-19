@@ -1,4 +1,4 @@
-# DSA4213-Project
+# Group ALT+W DSA4213-Project
 
 Let AI recommend movies to you
 
