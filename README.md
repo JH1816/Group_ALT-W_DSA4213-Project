@@ -28,10 +28,6 @@ venv\Scripts\pip install -r requirements.txt
 ### Run application
 venv\Scripts\wave run src\app.py
 
-### Set environment variables
-set H2OGPT_API_TOKEN=
-set H2OGPT_URL=https://**.h2ogpt.h2o.ai
-
 ## RAG Framework (rag directory)
 
 ### Overview
