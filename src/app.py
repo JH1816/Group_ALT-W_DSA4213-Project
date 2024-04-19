@@ -245,15 +245,10 @@ def prompt_generating_form(q):
     )
 
     q.page["movie_recommendation"] = ui.form_card(title="Movie Recommendations", box="right", items=[ui.text(name="movie_recommendation", content="Waiting for Input")])
-    # q.page["movie_recommendation2"] = ui.form_card(title="Movie Recommendations from collaborative filtering", box="right", items=[ui.text(name="movie_recommendation2", content="Waiting for Input")])
 
 @on()
 async def generate_prompt(q: Q):
     logger.info("")
-    # movie_description = ""
-    # if q.client.movie_description
-    #     movie_description = " Include  movie description for each movie."
-
     q.client.prompt = f'''
     As a movie enthusiast with expertise in the field, your task is to utilize your 
     knowledge and the given information to analyze and offer tailored movie
@@ -298,16 +293,7 @@ async def generate_movie(q: Q):
 
     :param q: The query object for H2O Wave that has important app information.
     """
-    collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
-    # q.page["movie_recommendation2"] = ui.form_card(
-    #         box='right',
-    #         items=[
-    #             ui.text(make_markdown_table(
-    #                 fields=collaborative_filterring_df.columns.tolist(),
-    #                 rows=collaborative_filterring_df.values.tolist(),
-    #             ))
-    #     ]  
-    # )
+
     q.client.chatbot_interaction = ChatBotInteraction(user_message=q.client.prompt)
     # Prepare our UI-Streaming function so that it can run while the blocking LLM message interaction runs
     update_ui = asyncio.ensure_future(stream_updates_to_ui(q))
@@ -320,44 +306,18 @@ async def stream_updates_to_ui(q: Q):
     Update the app's UI every 1/10th of a second with values from our chatbot interaction
     :param q: The query object stored by H2O Wave with information about the app and user behavior.
     """
-    
 
     while q.client.chatbot_interaction.responding:
         q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
-        #q.page["movie_recommendation2"] = ui.form_card(title="Movie Recommendations from collaborative filtering", box="right", items=[ui.text(name="movie_recommendation2", content="loading recommendation")])
         await q.page.save()
         await q.sleep(0.1)
     try:
         collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
-        # collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
         reply_content = q.client.chatbot_interaction.content_to_show
         result_df = format_LLM_output(reply_content)
         final_df = pd.concat([result_df,collaborative_filterring_df], axis=0,ignore_index=True)
-        result_content = generate_dataframe_as_h2o_content(final_df)
-        #collaborative_filterring_df = movie_recommender(q.args.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
-        
+        result_content = generate_dataframe_as_h2o_content(final_df)      
         q.page["movie_recommendation"] = result_content
-        # q.page["movie_recommendation"] = ui.form_card(
-        #     box='right',
-        #     items=[
-        #         ui.text(make_markdown_table(
-        #             fields=final_df.columns.tolist(),
-        #             rows=final_df.values.tolist(),
-        #         ))
-        #         ]  
-        #     )
-    #     collaborative_filterring_df = movie_recommender(q.client.select_movie,q.app.movies, q.app.pivot_df_filtered, q.app.model)
-    #     q.page["movie_recommendation2"] = ui.form_card(
-    #         box='right',
-    #         items=[
-    #             ui.text(make_markdown_table(
-    #                 fields=collaborative_filterring_df.columns.tolist(),
-    #                 rows=collaborative_filterring_df.values.tolist(),
-    #             ))
-    #     ]  
-    # )
-        #q.page["movie_recommendation"] = result_content
-        #q.page["movie_recommendation"] = collaborative_filterring_df
     except Exception as e:
         q.page["movie_recommendation"].movie_recommendation.content = q.client.chatbot_interaction.content_to_show
     await q.page.save()
@@ -379,12 +339,12 @@ def chat(chatbot_interaction):
         chatbot_interaction.update_response(message)
 
     try:
-        client = H2OGPTE(address='https://h2ogpte.genai.h2o.ai', api_key='sk-Xe7ocXvl1gW4HzLnMTh8QQuIutmb6OwBAHF2sQvCgxbbeSB2')
-        collection_id = '3cdf2f07-c4cb-4d05-9cf7-9935488fab27'
-
-        #chat_session_id = client.create_chat_session(collection_id)
+        client = H2OGPTE(address='https://h2ogpte.genai.h2o.ai', 
+                         api_key='sk-Xe7ocXvl1gW4HzLnMTh8QQuIutmb6OwBAHF2sQvCgxbbeSB2')
         chat_session_id = '6fbe24d2-5fcb-493d-9984-85140434cbdf'
-
+        # Uncomment the below two lines to create a new chat
+        # collection_id = '3cdf2f07-c4cb-4d05-9cf7-9935488fab27'
+        # chat_session_id = client.create_chat_session(collection_id)
         with client.connect(chat_session_id) as session:
             session.query(
                 system_prompt="You are an expert at movie recommendations.",
@@ -392,9 +352,6 @@ def chat(chatbot_interaction):
                 timeout=60,
                 callback=stream_response,
             )
-
-        #client.delete_chat_sessions([chat_session_id])
-
     except Exception as e:
         logger.error(e)
         return f""
