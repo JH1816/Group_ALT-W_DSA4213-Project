@@ -63,3 +63,23 @@ This folder contains scripts for formatting the output of a Language Model (LLM)
 ### Usage
 The two functions (**`format_LLM_output`** and *`generate_dataframe_as_h2o_content`**) are imported to the `app.py` in `src` directory to process the output of the LLM model and generate a UI form card in H2O Wave containing a table representing the provided DataFrame.
 
+## Data
+This folder contains the datasets used throughout the project. The datasets comprise ratings and free-text tagging activities from MovieLens, a movie recommendation service.
+
+### Contents
+1. **`ratings.csv`**: Contains 'userId', 'movieId', 'rating', and 'timestamp'.
+2. **`tags.csv`**: Contains 'userId', 'movieId', 'tag', and 'timestamp'.
+3. **`movies.csv`**: Renamed from **`movielens_data.xlsx`**, this file includes 'movieId', 'title', 'genres', and 'tag'.
+4. **`movies_full.csv`**: This file is created by merging **`movies.csv`** with 'ratings.csv' and 'tags.csv'. It incorporates average ratings from 'ratings.csv' and tags from 'tags.csv' for each movie, providing a comprehensive dataset for final usage.
+
+### Contents
+1. **`Initialization of Application Data`**: The movies_full.csv is read into a pandas DataFrame during the application's initialization in the initialize_app function.
+2. **`Integration with User Input for Recommendations`**: Within the generate_prompt function, the movies_full.csv data is used indirectly when forming prompts for movie recommendations based on user preferences such as favorite movie, genre, and release year.
+3. **`Interactive component`**: The DataFrame aids in populating choices in the user interface, specifically for selecting favorite movies. It is used in dropdown menus where users can choose a favorite movie, influencing the recommendations generated.
+
+
+
+
+
+
+
