@@ -72,7 +72,7 @@ This folder contains the datasets used throughout the project. The datasets comp
 3. **`movies.csv`**: Renamed from **`movielens_data.xlsx`**, this file includes 'movieId', 'title', 'genres', and 'tag'.
 4. **`movies_full.csv`**: This file is created by merging **`movies.csv`** with **`ratings.csv`** and **`tags.csv`**. It incorporates average ratings from **`ratings.csv`** and tags from **`tags.csv`** for each movie, providing a comprehensive dataset for final usage.
 
-### Contents
+### Usage
 1. **`Initialization of Application Data`**: The movies_full.csv is read into a pandas DataFrame during the application's initialization in the initialize_app function.
 2. **`Integration with User Input for Recommendations`**: Within the generate_prompt function, the movies_full.csv data is used indirectly when forming prompts for movie recommendations based on user preferences such as favorite movie, genre, and release year.
 3. **`Interactive component`**: The DataFrame aids in populating choices in the user interface, specifically for selecting favorite movies. It is used in dropdown menus where users can choose a favorite movie, influencing the recommendations generated.
