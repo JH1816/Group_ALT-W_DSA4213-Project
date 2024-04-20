@@ -63,7 +63,7 @@ This folder contains scripts for formatting the output of a Language Model (LLM)
 ### Usage
 The two functions (**`format_LLM_output`** and *`generate_dataframe_as_h2o_content`**) are imported to the `app.py` in `src` directory to process the output of the LLM model and generate a UI form card in H2O Wave containing a table representing the provided DataFrame.
 
-## Data
+## Datasets (data directory)
 This folder contains the datasets used throughout the project. The datasets comprise ratings and free-text tagging activities from MovieLens, a movie recommendation service.
 
 ### Contents
