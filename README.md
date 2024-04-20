@@ -70,7 +70,7 @@ This folder contains the datasets used throughout the project. The datasets comp
 1. **`ratings.csv`**: Contains 'userId', 'movieId', 'rating', and 'timestamp'.
 2. **`tags.csv`**: Contains 'userId', 'movieId', 'tag', and 'timestamp'.
 3. **`movies.csv`**: Renamed from **`movielens_data.xlsx`**, this file includes 'movieId', 'title', 'genres', and 'tag'.
-4. **`movies_full.csv`**: This file is created by merging **`movies.csv`** with 'ratings.csv' and 'tags.csv'. It incorporates average ratings from 'ratings.csv' and tags from 'tags.csv' for each movie, providing a comprehensive dataset for final usage.
+4. **`movies_full.csv`**: This file is created by merging **`movies.csv`** with **`ratings.csv`** and **`tags.csv`**. It incorporates average ratings from **`ratings.csv`** and tags from **`tags.csv`** for each movie, providing a comprehensive dataset for final usage.
 
 ### Contents
 1. **`Initialization of Application Data`**: The movies_full.csv is read into a pandas DataFrame during the application's initialization in the initialize_app function.
